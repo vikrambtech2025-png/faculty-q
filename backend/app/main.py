@@ -1,11 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from app.core.database import engine, Base
 from app.routers import auth, admin, timetable, substitution, assignment, notification
+from app.services.scheduler import start_scheduler, stop_scheduler
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="FACULTY Q API", version="1.0.0", docs_url="/docs")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    yield
+    stop_scheduler()
+
+app = FastAPI(title="FACULTY Q API", version="1.0.0", docs_url="/docs", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
