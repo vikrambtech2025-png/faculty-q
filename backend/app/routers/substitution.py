@@ -34,20 +34,21 @@ def available_faculty(day: int, period: int, user=Depends(get_current_user), db:
 @router.post("")
 def create_substitution(req: CreateSubstitution, user=Depends(require_role("faculty", "admin")),
                        db: Session = Depends(get_db)):
-    entry = db.query(TimetableEntry).filter(TimetableEntry.id == req.timetable_entry_id).first()
+    from uuid import UUID as PyUUID
+    entry = db.query(TimetableEntry).filter(TimetableEntry.id == PyUUID(req.timetable_entry_id)).first()
     if not entry:
         raise HTTPException(404, "Timetable entry not found")
     # Prevent duplicate substitution for same entry+date
     existing = db.query(Substitution).filter(
-        Substitution.timetable_entry_id == req.timetable_entry_id,
+        Substitution.timetable_entry_id == PyUUID(req.timetable_entry_id),
         Substitution.substitution_date == req.substitution_date,
     ).first()
     if existing:
         raise HTTPException(400, "Substitution already exists for this period")
     sub = Substitution(
-        timetable_entry_id=req.timetable_entry_id,
-        original_faculty_id=entry.timetable.faculty_id,
-        substitute_faculty_id=req.substitute_faculty_id,
+        timetable_entry_id=PyUUID(req.timetable_entry_id),
+        original_faculty_id=PyUUID(str(entry.timetable.faculty_id)),
+        substitute_faculty_id=PyUUID(req.substitute_faculty_id),
         substitution_date=req.substitution_date,
         reason=req.reason,
         requested_by=user.id,
@@ -72,6 +73,35 @@ def approve(sub_id: str, user=Depends(require_role("admin")), db: Session = Depe
     sub.status = "Approved"
     sub.approved_by = user.id
     db.commit()
+    # Notify substitute faculty
+    from app.services.notification_service import create_notification
+    notif_title = "Substitution Assigned"
+    notif_msg = (
+        f"You have been assigned as a substitute for {sub.original_faculty.user.first_name} {sub.original_faculty.user.last_name}'s class.\n"
+        f"Date: {sub.substitution_date}\n"
+        f"Subject: {sub.timetable_entry.timetable.subject.name}\n"
+        f"Class: {sub.timetable_entry.timetable.class_.name} - Section {sub.timetable_entry.timetable.section.name}\n"
+        f"Period: {sub.timetable_entry.period_number}"
+    )
+    create_notification(db, sub.substitute_faculty.user_id, notif_title, notif_msg, "substitution",
+                        reference_id=sub.id)
+    # Notify students in the class
+    from app.models.student import StudentProfile
+    students = db.query(StudentProfile).filter(
+        StudentProfile.class_id == sub.timetable_entry.timetable.class_id,
+        StudentProfile.section_id == sub.timetable_entry.timetable.section_id,
+    ).all()
+    for sp in students:
+        smsg = (
+            f"Your class has a substitute faculty.\n"
+            f"Original: {sub.original_faculty.user.first_name} {sub.original_faculty.user.last_name}\n"
+            f"Substitute: {sub.substitute_faculty.user.first_name} {sub.substitute_faculty.user.last_name}\n"
+            f"Subject: {sub.timetable_entry.timetable.subject.name}\n"
+            f"Date: {sub.substitution_date}\n"
+            f"Period: {sub.timetable_entry.period_number}"
+        )
+        create_notification(db, sp.user_id, "Substitute Faculty Update", smsg, "substitution",
+                            reference_id=sub.id)
     return {"id": str(sub.id), "status": sub.status}
 
 @router.put("/{sub_id}/reject")

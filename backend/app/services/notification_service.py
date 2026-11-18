@@ -10,15 +10,20 @@ logger = logging.getLogger(__name__)
 def create_notification(db: Session, user_id, title: str, message: str,
                        ntype: str, reference_id=None, idempotency_key: str = None) -> Notification:
     """Create an in-app notification. Prevents duplicates via idempotency_key on email logs."""
+    from uuid import UUID as PyUUID
+    uid = PyUUID(str(user_id)) if not isinstance(user_id, PyUUID) else user_id
+    rid = PyUUID(str(reference_id)) if reference_id and not isinstance(reference_id, PyUUID) else reference_id
     # Check for duplicate in-app notification
-    if reference_id:
+    if rid:
         existing = db.query(Notification).filter(
-            Notification.user_id == user_id,
-            Notification.reference_id == reference_id,
+            Notification.user_id == uid,
+            Notification.reference_id == rid,
             Notification.notification_type == ntype,
         ).first()
         if existing:
             return existing
+    user_id = uid
+    reference_id = rid
 
     notif = Notification(
         user_id=user_id, title=title, message=message,

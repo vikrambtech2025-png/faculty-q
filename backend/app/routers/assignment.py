@@ -25,10 +25,16 @@ def create_assignment(req: CreateAssignment, user=Depends(require_role("faculty"
     fp = db.query(FacultyProfile).filter(FacultyProfile.user_id == user.id).first()
     if not fp:
         raise HTTPException(400, "Faculty profile not found")
+    from uuid import UUID as PyUUID
+    from datetime import datetime as dt
+    deadline = dt.fromisoformat(req.deadline.replace('Z', '+00:00')).replace(tzinfo=None) if 'T' in req.deadline else dt.strptime(req.deadline, '%Y-%m-%d %H:%M:%S')
     a = Assignment(
-        title=req.title, description=req.description, subject_id=req.subject_id,
-        class_id=req.class_id, section_id=req.section_id, faculty_id=fp.id,
-        deadline=req.deadline, attachments=req.attachments,
+        title=req.title, description=req.description,
+        subject_id=PyUUID(req.subject_id),
+        class_id=PyUUID(req.class_id),
+        section_id=PyUUID(req.section_id) if req.section_id else None,
+        faculty_id=fp.id,
+        deadline=deadline, attachments=req.attachments,
     )
     db.add(a)
     db.commit()
@@ -53,22 +59,74 @@ def student_assignments(user=Depends(get_current_user), db: Session = Depends(ge
         Assignment.is_cancelled == False,
     ).all()
     result = []
+    now = datetime.utcnow()
     for a in assignments:
         sub = db.query(AssignmentSubmission).filter(
             AssignmentSubmission.assignment_id == a.id,
             AssignmentSubmission.student_id == sp.id,
         ).first()
+        status = sub.status if sub else "Pending"
+        # Auto-mark overdue
+        if status == "Pending" and a.deadline < now:
+            status = "Overdue"
         result.append({
             "id": str(a.id), "title": a.title, "subject": a.subject.name,
             "deadline": str(a.deadline), "faculty": a.faculty.user.first_name + " " + a.faculty.user.last_name,
-            "status": sub.status if sub else "Pending",
+            "status": status,
         })
     return result
+
+@router.post("/{aid}/submit")
+def submit_assignment(aid: str, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.models.student import StudentProfile
+    sp = db.query(StudentProfile).filter(StudentProfile.user_id == user.id).first()
+    if not sp:
+        raise HTTPException(400, "Student profile not found")
+    from uuid import UUID as PyUUID
+    a = db.query(Assignment).filter(Assignment.id == PyUUID(aid)).first()
+    if not a:
+        raise HTTPException(404, "Assignment not found")
+    from uuid import UUID as PyUUID
+    sub = db.query(AssignmentSubmission).filter(
+        AssignmentSubmission.assignment_id == PyUUID(aid),
+        AssignmentSubmission.student_id == PyUUID(str(sp.id)),
+    ).first()
+    if not sub:
+        from uuid import UUID as PyUUID
+        sub = AssignmentSubmission(assignment_id=PyUUID(aid), student_id=PyUUID(str(sp.id)))
+        db.add(sub)
+    sub.status = "Submitted"
+    sub.submitted_at = datetime.utcnow()
+    db.commit()
+    return {"id": str(sub.id), "status": sub.status, "submitted_at": str(sub.submitted_at)}
+
+@router.get("/{aid}/submissions")
+def list_submissions(aid: str, user=Depends(require_role("faculty", "admin")), db: Session = Depends(get_db)):
+    from uuid import UUID as PyUUID
+    subs = db.query(AssignmentSubmission).filter(AssignmentSubmission.assignment_id == PyUUID(aid)).all()
+    return [{"id": str(s.id), "student": s.student.user.first_name + " " + s.student.user.last_name,
+             "roll": s.student.roll_number, "status": s.status,
+             "submitted_at": str(s.submitted_at) if s.submitted_at else None,
+             "grade": s.grade} for s in subs]
+
+@router.put("/submissions/{sid}/grade")
+def grade_submission(sid: str, grade: str, feedback: str = None,
+                     user=Depends(require_role("faculty", "admin")), db: Session = Depends(get_db)):
+    from uuid import UUID as PyUUID
+    sub = db.query(AssignmentSubmission).filter(AssignmentSubmission.id == PyUUID(sid)).first()
+    if not sub:
+        raise HTTPException(404, "Not found")
+    sub.grade = grade
+    sub.feedback = feedback
+    sub.status = "Completed"
+    db.commit()
+    return {"id": str(sub.id), "grade": sub.grade, "status": sub.status}
 
 @router.put("/{aid}")
 def update_assignment(aid: str, req: CreateAssignment, user=Depends(require_role("faculty", "admin")),
                       db: Session = Depends(get_db)):
-    a = db.query(Assignment).filter(Assignment.id == aid).first()
+    from uuid import UUID as PyUUID
+    a = db.query(Assignment).filter(Assignment.id == PyUUID(aid)).first()
     if not a:
         raise HTTPException(404, "Not found")
     a.title = req.title
@@ -80,7 +138,8 @@ def update_assignment(aid: str, req: CreateAssignment, user=Depends(require_role
 
 @router.delete("/{aid}")
 def delete_assignment(aid: str, user=Depends(require_role("faculty", "admin")), db: Session = Depends(get_db)):
-    a = db.query(Assignment).filter(Assignment.id == aid).first()
+    from uuid import UUID as PyUUID
+    a = db.query(Assignment).filter(Assignment.id == PyUUID(aid)).first()
     if not a:
         raise HTTPException(404, "Not found")
     a.is_cancelled = True
@@ -94,8 +153,11 @@ def create_project(req: CreateAssignment, user=Depends(require_role("faculty", "
     fp = db.query(FacultyProfile).filter(FacultyProfile.user_id == user.id).first()
     if not fp:
         raise HTTPException(400, "Faculty profile not found")
-    p = Project(title=req.title, description=req.description, subject_id=req.subject_id,
-                class_id=req.class_id, faculty_id=fp.id, deadline=req.deadline, attachments=req.attachments)
+    from uuid import UUID as PyUUID
+    from datetime import datetime as dt
+    deadline = dt.fromisoformat(req.deadline.replace('Z', '+00:00')).replace(tzinfo=None) if 'T' in req.deadline else dt.strptime(req.deadline, '%Y-%m-%d %H:%M:%S')
+    p = Project(title=req.title, description=req.description, subject_id=PyUUID(req.subject_id),
+                class_id=PyUUID(req.class_id), faculty_id=fp.id, deadline=deadline, attachments=req.attachments)
     db.add(p)
     db.commit()
     db.refresh(p)

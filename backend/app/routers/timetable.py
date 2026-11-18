@@ -18,12 +18,13 @@ DAY_MAP = {"monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3, "friday": 4
 def list_timetables(user=Depends(get_current_user), db: Session = Depends(get_db),
                     faculty_id: str = None, class_id: str = None, section_id: str = None):
     q = db.query(Timetable).filter(Timetable.is_active == True)
+    from uuid import UUID as PyUUID
     if faculty_id:
-        q = q.filter(Timetable.faculty_id == faculty_id)
+        q = q.filter(Timetable.faculty_id == PyUUID(faculty_id))
     if class_id:
-        q = q.filter(Timetable.class_id == class_id)
+        q = q.filter(Timetable.class_id == PyUUID(class_id))
     if section_id:
-        q = q.filter(Timetable.section_id == section_id)
+        q = q.filter(Timetable.section_id == PyUUID(section_id))
     tts = q.all()
     return [{"id": str(t.id), "faculty": t.faculty.user.first_name + " " + t.faculty.user.last_name,
              "faculty_id": str(t.faculty_id), "subject": t.subject.name, "subject_id": str(t.subject_id),
@@ -200,7 +201,8 @@ def upload_timetable(file: UploadFile = File(...), user=Depends(get_current_user
 
 @router.put("/{tid}/approve")
 def approve_timetable(tid: str, user=Depends(require_role("admin")), db: Session = Depends(get_db)):
-    tt = db.query(Timetable).filter(Timetable.id == tid).first()
+    from uuid import UUID as PyUUID
+    tt = db.query(Timetable).filter(Timetable.id == PyUUID(tid)).first()
     if not tt:
         raise HTTPException(404, "Not found")
     tt.is_approved = True
@@ -209,7 +211,8 @@ def approve_timetable(tid: str, user=Depends(require_role("admin")), db: Session
 
 @router.put("/{tid}/deactivate")
 def deactivate(tid: str, user=Depends(require_role("admin", "faculty")), db: Session = Depends(get_db)):
-    tt = db.query(Timetable).filter(Timetable.id == tid).first()
+    from uuid import UUID as PyUUID
+    tt = db.query(Timetable).filter(Timetable.id == PyUUID(tid)).first()
     if not tt:
         raise HTTPException(404, "Not found")
     tt.is_active = False

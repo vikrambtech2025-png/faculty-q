@@ -62,8 +62,9 @@ def create_faculty(req: CreateFaculty, user=Depends(require_role("admin")), db: 
     u.roles.append(role)
     db.add(u)
     db.flush()
+    from uuid import UUID as PyUUID
     fp = FacultyProfile(user_id=u.id, employee_id=req.employee_id,
-                        department_id=req.department_id, designation=req.designation,
+                        department_id=PyUUID(req.department_id), designation=req.designation,
                         qualification=req.qualification)
     db.add(fp)
     db.commit()
@@ -85,8 +86,9 @@ def create_student(req: CreateStudent, user=Depends(require_role("admin")), db: 
     u.roles.append(role)
     db.add(u)
     db.flush()
+    from uuid import UUID as PyUUID
     sp = StudentProfile(user_id=u.id, roll_number=req.roll_number,
-                        class_id=req.class_id, section_id=req.section_id, semester_id=req.semester_id)
+                        class_id=PyUUID(req.class_id), section_id=PyUUID(req.section_id), semester_id=PyUUID(req.semester_id))
     db.add(sp)
     db.commit()
     return {"id": str(sp.id), "email": u.email, "name": u.first_name + " " + u.last_name}
