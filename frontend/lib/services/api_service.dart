@@ -1,0 +1,98 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+class ApiService {
+  static const String baseUrl = 'http://localhost:8000';
+  String? _token;
+
+  Future<void> loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString('access_token');
+  }
+
+  Future<void> saveToken(String token) async {
+    _token = token;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('access_token', token);
+  }
+
+  Future<void> clearToken() async {
+    _token = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+  }
+
+  Map<String, String> get _headers => {
+        'Content-Type': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/auth/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password}),
+    );
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      await saveToken(data['access_token']);
+      return data;
+    }
+    throw Exception(jsonDecode(res.body)['detail'] ?? 'Login failed');
+  }
+
+  Future<Map<String, dynamic>> getMe() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/auth/me'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed to get user');
+  }
+
+  Future<Map<String, dynamic>> getAdminDashboard() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/admin/dashboard'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<List<dynamic>> getFacultyList() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/admin/faculty'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<List<dynamic>> getStudentList() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/admin/students'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<List<dynamic>> getTodayTimetable() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/timetables/today'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<List<dynamic>> getNotifications() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/notifications'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<Map<String, dynamic>> getUnreadCount() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/notifications/unread-count'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<List<dynamic>> getAssignments() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/assignments'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<List<dynamic>> getStudentAssignments() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/assignments/student'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+}

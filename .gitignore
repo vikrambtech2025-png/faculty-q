@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.db
+.env
+venv/
+
+# Flutter
+frontend/build/
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/ios/Pods/
+
+# IDE
+.idea/
+.vscode/
+*.iml
