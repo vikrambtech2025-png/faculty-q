@@ -128,4 +128,9 @@ class ApiService {
     final res = await http.post(Uri.parse('$baseUrl/api/assignments/$id/submit'), headers: _headers);
     if (res.statusCode != 200) throw Exception('Failed');
   }
+
+  Future<void> createAssignment(Map<String, dynamic> data) async {
+    final res = await http.post(Uri.parse('$baseUrl/api/assignments'), headers: _headers, body: jsonEncode(data));
+    if (res.statusCode != 200 && res.statusCode != 201) throw Exception('Failed: ${res.body}');
+  }
 }

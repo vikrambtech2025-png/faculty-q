@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'notifications_screen.dart';
 import 'timetable_screen.dart';
+import 'assignments_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final ApiService api;
@@ -23,6 +24,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _load();
   }
+
+  String get _role => widget.role;
 
   Future<void> _load() async {
     try {
@@ -65,13 +68,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: _buildCards(),
                       ),
                     ))
-          : TimetableScreen(api: widget.api),
+          : _tab == 1
+              ? TimetableScreen(api: widget.api)
+              : AssignmentsScreen(api: widget.api, role: widget.role),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _tab,
         onTap: (i) => setState(() => _tab = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Timetable'),
+          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Assignments'),
         ],
       ),
     );
