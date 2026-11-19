@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'notifications_screen.dart';
+import 'timetable_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final ApiService api;
@@ -14,6 +16,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? data;
   bool loading = true;
   String error = '';
+  int _tab = 0;
 
   @override
   void initState() {
@@ -43,20 +46,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text('${widget.role[0].toUpperCase()}${widget.role.substring(1)} Dashboard'),
         backgroundColor: const Color(0xFF1E3A5F), foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen(api: widget.api))),
+          ),
           IconButton(icon: const Icon(Icons.logout), onPressed: () => Navigator.pop(context)),
         ],
       ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : error.isNotEmpty
-              ? Center(child: Text(error, style: const TextStyle(color: Colors.red)))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _buildCards(),
-                  ),
-                ),
+      body: _tab == 0
+          ? (loading
+              ? const Center(child: CircularProgressIndicator())
+              : error.isNotEmpty
+                  ? Center(child: Text(error, style: const TextStyle(color: Colors.red)))
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _buildCards(),
+                      ),
+                    ))
+          : TimetableScreen(api: widget.api),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _tab,
+        onTap: (i) => setState(() => _tab = i),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Timetable'),
+        ],
+      ),
     );
   }
 

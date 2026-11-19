@@ -84,6 +84,12 @@ class ApiService {
     throw Exception('Failed');
   }
 
+  Future<Map<String, dynamic>> getWeekTimetable() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/timetables/week'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception('Failed');
+  }
+
   Future<List<dynamic>> getNotifications() async {
     final res = await http.get(Uri.parse('$baseUrl/api/notifications'), headers: _headers);
     if (res.statusCode == 200) return jsonDecode(res.body);
@@ -96,6 +102,16 @@ class ApiService {
     throw Exception('Failed');
   }
 
+  Future<void> markNotificationRead(String id) async {
+    final res = await http.put(Uri.parse('$baseUrl/api/notifications/$id/read'), headers: _headers);
+    if (res.statusCode != 200) throw Exception('Failed');
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    final res = await http.put(Uri.parse('$baseUrl/api/notifications/read-all'), headers: _headers);
+    if (res.statusCode != 200) throw Exception('Failed');
+  }
+
   Future<List<dynamic>> getAssignments() async {
     final res = await http.get(Uri.parse('$baseUrl/api/assignments'), headers: _headers);
     if (res.statusCode == 200) return jsonDecode(res.body);
@@ -106,5 +122,10 @@ class ApiService {
     final res = await http.get(Uri.parse('$baseUrl/api/assignments/student'), headers: _headers);
     if (res.statusCode == 200) return jsonDecode(res.body);
     throw Exception('Failed');
+  }
+
+  Future<void> submitAssignment(String id) async {
+    final res = await http.post(Uri.parse('$baseUrl/api/assignments/$id/submit'), headers: _headers);
+    if (res.statusCode != 200) throw Exception('Failed');
   }
 }
