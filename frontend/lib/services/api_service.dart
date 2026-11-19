@@ -133,4 +133,21 @@ class ApiService {
     final res = await http.post(Uri.parse('$baseUrl/api/assignments'), headers: _headers, body: jsonEncode(data));
     if (res.statusCode != 200 && res.statusCode != 201) throw Exception('Failed: ${res.body}');
   }
+
+  Future<List<dynamic>> getSubstitutions() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/substitutions'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<List<dynamic>> getAvailableFaculty(int day, int period) async {
+    final res = await http.get(Uri.parse('$baseUrl/api/substitutions/available-faculty?day=$day&period=$period'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<void> createSubstitution(Map<String, dynamic> data) async {
+    final res = await http.post(Uri.parse('$baseUrl/api/substitutions'), headers: _headers, body: jsonEncode(data));
+    if (res.statusCode != 200 && res.statusCode != 201) throw Exception('Failed: ${res.body}');
+  }
 }

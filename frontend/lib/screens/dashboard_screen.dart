@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import 'notifications_screen.dart';
 import 'timetable_screen.dart';
 import 'assignments_screen.dart';
+import 'substitution_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final ApiService api;
@@ -18,6 +19,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool loading = true;
   String error = '';
   int _tab = 0;
+  int _unreadCount = 0;
 
   @override
   void initState() {
@@ -36,6 +38,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } else {
         data = await widget.api.getStudentDashboard();
       }
+      try {
+        final uc = await widget.api.getUnreadCount();
+        _unreadCount = uc['count'] ?? 0;
+      } catch (_) {}
     } catch (e) {
       error = e.toString();
     }
@@ -49,9 +55,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text('${widget.role[0].toUpperCase()}${widget.role.substring(1)} Dashboard'),
         backgroundColor: const Color(0xFF1E3A5F), foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen(api: widget.api))),
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                onPressed: () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen(api: widget.api)));
+                  _load();
+                },
+              ),
+              if (_unreadCount > 0)
+                Positioned(
+                  right: 8, top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text('$_unreadCount', style: const TextStyle(color: Colors.white, fontSize: 10), textAlign: TextAlign.center),
+                  ),
+                ),
+            ],
           ),
           IconButton(icon: const Icon(Icons.logout), onPressed: () => Navigator.pop(context)),
         ],
@@ -70,14 +93,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ))
           : _tab == 1
               ? TimetableScreen(api: widget.api)
-              : AssignmentsScreen(api: widget.api, role: widget.role),
+              : _tab == 2
+                  ? AssignmentsScreen(api: widget.api, role: widget.role)
+                  : SubstitutionScreen(api: widget.api),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _tab,
         onTap: (i) => setState(() => _tab = i),
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Timetable'),
           BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Assignments'),
+          BottomNavigationBarItem(icon: Icon(Icons.swap_horiz), label: 'Substitutions'),
         ],
       ),
     );
