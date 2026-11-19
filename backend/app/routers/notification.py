@@ -49,6 +49,15 @@ def get_prefs(user=Depends(get_current_user), db: Session = Depends(get_db)):
     return {"email_enabled": pref.email_enabled, "in_app_enabled": pref.in_app_enabled,
             "class_reminder_minutes": pref.class_reminder_minutes}
 
+@router.post("/test-email")
+def test_email(user=Depends(get_current_user)):
+    from app.services.email_service import send_email
+    from app.core.config import settings
+    if not settings.SMTP_HOST:
+        return {"status": "not_configured", "message": "SMTP not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD env vars."}
+    success = send_email(user.email, "FACULTY Q - Test Email", "This is a test email from FACULTY Q. If you received this, email is configured correctly.")
+    return {"status": "sent" if success else "failed", "message": "Test email sent" if success else "Failed to send. Check SMTP credentials and logs."}
+
 @router.put("/preferences")
 def update_prefs(email_enabled: bool = None, in_app_enabled: bool = None,
                  user=Depends(get_current_user), db: Session = Depends(get_db)):

@@ -4,6 +4,7 @@ import 'notifications_screen.dart';
 import 'timetable_screen.dart';
 import 'assignments_screen.dart';
 import 'substitution_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final ApiService api;
@@ -76,6 +77,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
             ],
           ),
+          IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen(api: widget.api)))),
           IconButton(icon: const Icon(Icons.logout), onPressed: () => Navigator.pop(context)),
         ],
       ),

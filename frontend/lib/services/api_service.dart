@@ -134,6 +134,27 @@ class ApiService {
     if (res.statusCode != 200 && res.statusCode != 201) throw Exception('Failed: ${res.body}');
   }
 
+  Future<Map<String, dynamic>> getNotificationPrefs() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/notifications/preferences'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<void> updateNotificationPrefs({bool? emailEnabled, bool? inAppEnabled}) async {
+    final params = <String, String>{};
+    if (emailEnabled != null) params['email_enabled'] = emailEnabled.toString();
+    if (inAppEnabled != null) params['in_app_enabled'] = inAppEnabled.toString();
+    final uri = Uri.parse('$baseUrl/api/notifications/preferences').replace(queryParameters: params);
+    final res = await http.put(uri, headers: _headers);
+    if (res.statusCode != 200) throw Exception('Failed');
+  }
+
+  Future<Map<String, dynamic>> testEmail() async {
+    final res = await http.post(Uri.parse('$baseUrl/api/notifications/test-email'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed: ${res.body}');
+  }
+
   Future<List<dynamic>> getSubstitutions() async {
     final res = await http.get(Uri.parse('$baseUrl/api/substitutions'), headers: _headers);
     if (res.statusCode == 200) return jsonDecode(res.body);
