@@ -49,7 +49,19 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminDashboard() async {
-    final res = await http.get(Uri.parse('$baseUrl/api/admin/dashboard'), headers: _headers);
+    final res = await http.get(Uri.parse('$baseUrl/api/dashboard/admin'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<Map<String, dynamic>> getFacultyDashboard() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/dashboard/faculty'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed');
+  }
+
+  Future<Map<String, dynamic>> getStudentDashboard() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/dashboard/student'), headers: _headers);
     if (res.statusCode == 200) return jsonDecode(res.body);
     throw Exception('Failed');
   }

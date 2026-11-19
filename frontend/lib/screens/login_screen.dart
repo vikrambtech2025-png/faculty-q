@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,13 +22,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = data['user'];
       final roles = List<String>.from(user['roles'] ?? []);
       if (!mounted) return;
-      if (roles.contains('admin')) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => AdminDashboard(api: _api, user: user)));
-      } else if (roles.contains('faculty')) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => FacultyDashboard(api: _api, user: user)));
-      } else {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => StudentDashboard(api: _api, user: user)));
-      }
+      final role = roles.contains('admin') ? 'admin' : (roles.contains('faculty') ? 'faculty' : 'student');
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => DashboardScreen(api: _api, user: user, role: role)));
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
@@ -79,36 +75,3 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// Placeholder dashboards
-class AdminDashboard extends StatelessWidget {
-  final ApiService api;
-  final Map<String, dynamic> user;
-  const AdminDashboard({super.key, required this.api, required this.user});
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('Admin Dashboard - ${user['first_name']}'), backgroundColor: const Color(0xFF1E3A5F), foregroundColor: Colors.white),
-    body: const Center(child: Text('Admin Dashboard\n(Phase 1: Foundation)', textAlign: TextAlign.center)),
-  );
-}
-
-class FacultyDashboard extends StatelessWidget {
-  final ApiService api;
-  final Map<String, dynamic> user;
-  const FacultyDashboard({super.key, required this.api, required this.user});
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('Faculty Dashboard - ${user['first_name']}'), backgroundColor: const Color(0xFF1E3A5F), foregroundColor: Colors.white),
-    body: const Center(child: Text('Faculty Dashboard\n(Phase 1: Foundation)', textAlign: TextAlign.center)),
-  );
-}
-
-class StudentDashboard extends StatelessWidget {
-  final ApiService api;
-  final Map<String, dynamic> user;
-  const StudentDashboard({super.key, required this.api, required this.user});
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('Student Dashboard - ${user['first_name']}'), backgroundColor: const Color(0xFF1E3A5F), foregroundColor: Colors.white),
-    body: const Center(child: Text('Student Dashboard\n(Phase 1: Foundation)', textAlign: TextAlign.center)),
-  );
-}

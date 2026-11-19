@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core.database import engine, Base
-from app.routers import auth, admin, timetable, substitution, assignment, notification
+from app.routers import auth, admin, timetable, substitution, assignment, notification, dashboard
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 Base.metadata.create_all(bind=engine)
@@ -29,6 +29,7 @@ app.include_router(timetable.router)
 app.include_router(substitution.router)
 app.include_router(assignment.router)
 app.include_router(notification.router)
+app.include_router(dashboard.router)
 
 @app.get("/")
 def root():
